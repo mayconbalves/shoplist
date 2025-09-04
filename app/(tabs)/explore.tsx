@@ -1,12 +1,12 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Image } from 'expo-image'
+import { Platform, StyleSheet } from 'react-native'
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Collapsible } from '@/components/Collapsible'
+import { ExternalLink } from '@/components/ExternalLink'
+import ParallaxScrollView from '@/components/ParallaxScrollView'
+import { ThemedText } from '@/components/ThemedText'
+import { ThemedView } from '@/components/ThemedView'
+import { IconSymbol } from '@/components/ui/IconSymbol'
 
 export default function TabTwoScreen() {
   return (
@@ -19,7 +19,8 @@ export default function TabTwoScreen() {
           name="chevron.left.forwardslash.chevron.right"
           style={styles.headerImage}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Explore</ThemedText>
       </ThemedView>
@@ -89,11 +90,11 @@ export default function TabTwoScreen() {
               The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
               component provides a parallax effect for the header image.
             </ThemedText>
-          ),
+          )
         })}
       </Collapsible>
     </ParallaxScrollView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -101,10 +102,10 @@ const styles = StyleSheet.create({
     color: '#808080',
     bottom: -90,
     left: -35,
-    position: 'absolute',
+    position: 'absolute'
   },
   titleContainer: {
     flexDirection: 'row',
-    gap: 8,
-  },
-});
+    gap: 8
+  }
+})
