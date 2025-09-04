@@ -13,14 +13,19 @@ export default function RootLayout() {
   })
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Tela principal da lista */}
+        <Stack.Screen name="index" options={{ title: 'ShopList' }} />
+
+        {/* Tela de adicionar item */}
+        <Stack.Screen name="AddItem" options={{ title: 'Adicionar Produto' }} />
+
+        {/* Tela fallback (já existente) */}
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
