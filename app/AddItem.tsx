@@ -9,7 +9,7 @@ type TempItem = {
   id: string
   name: string
   quantity: number
-  price: string // manter como string para aceitar vírgula
+  price: string
 }
 
 export default function AddItemScreen() {
@@ -44,15 +44,32 @@ export default function AddItemScreen() {
       return
     }
 
-    const itemsToSave: Item[] = validItems.map((i) => ({
-      id: Date.now().toString() + Math.random(),
-      name: i.name,
-      quantity: i.quantity,
-      price: Number(i.price.replace(',', '.'))
-    }))
-
     const existingItems = await loadItems()
-    await saveItems([...itemsToSave, ...existingItems])
+
+    const mergedItems: Item[] = [...existingItems]
+
+    validItems.forEach((newItem) => {
+      const index = mergedItems.findIndex((it) => it.name === newItem.name)
+      const priceNumber = Number(newItem.price.replace(',', '.'))
+
+      if (index !== -1) {
+        // Se já existe, somar quantidade e atualizar preço
+        mergedItems[index] = {
+          ...mergedItems[index],
+          quantity: (mergedItems[index].quantity || 0) + newItem.quantity,
+          price: priceNumber
+        }
+      } else {
+        mergedItems.push({
+          id: Date.now().toString() + Math.random(),
+          name: newItem.name,
+          quantity: newItem.quantity,
+          price: priceNumber
+        })
+      }
+    })
+
+    await saveItems(mergedItems)
     router.back()
   }
 
@@ -108,8 +125,8 @@ const styles = StyleSheet.create({
   },
   name: { flex: 2, fontSize: 16, fontWeight: '600' },
   qtyBtn: {
-    width: 30,
-    height: 30,
+    width: 36,
+    height: 36,
     backgroundColor: '#111827',
     borderRadius: 999,
     alignItems: 'center',
@@ -117,7 +134,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4
   },
   qtyBtnText: { color: '#fff', fontWeight: '700', fontSize: 18 },
-  qtyText: { width: 30, textAlign: 'center', fontWeight: '600', fontSize: 16 },
+  qtyText: { width: 32, textAlign: 'center', fontWeight: '600', fontSize: 16 },
   input: {
     flex: 1,
     borderWidth: 1,

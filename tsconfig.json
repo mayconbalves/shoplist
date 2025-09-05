@@ -4,5 +4,14 @@
     "strict": true,
     "paths": { "@/*": ["./*"] }
   },
-  "include": ["app/**/*", "components/**/*", "hooks/**/*", "store", "styles", "types", "storage"]
+  "include": [
+    "app/**/*",
+    "components/**/*",
+    "hooks/**/*",
+    "store",
+    "styles",
+    "types",
+    "storage",
+    "utils"
+  ]
 }
