@@ -1,86 +1,143 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Item, loadItems, saveItems } from '../storage/listStorage'
 
+const PRODUCTS = ['Arroz', 'Feijão', 'Leite', 'Pão', 'Macarrão']
+
+type TempItem = {
+  id: string
+  name: string
+  quantity: number
+  price: string // manter como string para aceitar vírgula
+}
+
 export default function AddItemScreen() {
-  const [name, setName] = useState('')
-  const [price, setPrice] = useState('')
   const router = useRouter()
+  const [items, setItems] = useState<TempItem[]>(
+    PRODUCTS.map((name) => ({ id: name, name, quantity: 0, price: '' }))
+  )
 
-  async function onSave() {
-    const p = Number(String(price).replace(',', '.'))
+  const incrementQuantity = (id: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity: item.quantity + 1 } : item))
+    )
+  }
 
-    if (!name.trim()) {
-      Alert.alert('Campo obrigatório', 'Informe o nome do produto.')
+  const decrementQuantity = (id: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
+      )
+    )
+  }
+
+  const updatePrice = (id: string, value: string) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, price: value } : item)))
+  }
+
+  const onSave = async () => {
+    const validItems = items.filter((i) => i.quantity > 0 && Number(i.price.replace(',', '.')) > 0)
+
+    if (!validItems.length) {
+      Alert.alert('Nenhum item válido', 'Informe quantidade e preço de pelo menos um item.')
       return
     }
 
-    if (isNaN(p) || p < 0) {
-      Alert.alert('Preço inválido', 'Informe um preço válido (ex: 12.50)')
-      return
-    }
+    const itemsToSave: Item[] = validItems.map((i) => ({
+      id: Date.now().toString() + Math.random(),
+      name: i.name,
+      quantity: i.quantity,
+      price: Number(i.price.replace(',', '.'))
+    }))
 
-    const newItem: Item = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      price: p
-    }
-
-    // Carrega lista existente
-    const items = await loadItems()
-    // Adiciona o novo item
-    const updated = [newItem, ...items]
-    // Salva lista atualizada
-    await saveItems(updated)
-
-    // Volta para a tela anterior (HomeScreen)
+    const existingItems = await loadItems()
+    await saveItems([...itemsToSave, ...existingItems])
     router.back()
   }
 
+  const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Produto</Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Ex: Arroz 5kg"
-        style={styles.input}
-      />
+      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+        {items.map((item) => (
+          <View key={item.id} style={styles.row}>
+            <Text style={styles.name}>{item.name}</Text>
 
-      <Text style={styles.label}>Preço (R$)</Text>
-      <TextInput
-        value={price}
-        onChangeText={setPrice}
-        placeholder="Ex: 25,90"
-        keyboardType="decimal-pad"
-        style={styles.input}
-      />
+            <Pressable style={styles.qtyBtn} onPress={() => decrementQuantity(item.id)}>
+              <Text style={styles.qtyBtnText}>-</Text>
+            </Pressable>
+            <Text style={styles.qtyText}>{item.quantity}</Text>
+            <Pressable style={styles.qtyBtn} onPress={() => incrementQuantity(item.id)}>
+              <Text style={styles.qtyBtnText}>+</Text>
+            </Pressable>
 
-      <Pressable style={styles.btn} onPress={onSave}>
-        <Text style={styles.btnTxt}>Salvar</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="decimal-pad"
+              value={item.price}
+              onChangeText={(text) => updatePrice(item.id, text)}
+              placeholder="Preço"
+            />
+
+            <Text style={styles.total}>
+              {BRL.format(item.quantity * (Number(item.price.replace(',', '.')) || 0))}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+
+      <Pressable style={styles.saveBtn} onPress={onSave}>
+        <Text style={styles.saveBtnTxt}>Salvar Todos</Text>
       </Pressable>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
-  label: { fontWeight: '700' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  container: { flex: 1, padding: 16 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: '#f5f5f5',
+    padding: 12,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    minHeight: 60
+  },
+  name: { flex: 2, fontSize: 16, fontWeight: '600' },
+  qtyBtn: {
+    width: 30,
+    height: 30,
+    backgroundColor: '#111827',
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4
+  },
+  qtyBtnText: { color: '#fff', fontWeight: '700', fontSize: 18 },
+  qtyText: { width: 30, textAlign: 'center', fontWeight: '600', fontSize: 16 },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginHorizontal: 4,
+    height: 40,
     fontSize: 16
   },
-  btn: {
-    marginTop: 12,
+  total: { width: 90, textAlign: 'right', fontWeight: '600', fontSize: 16 },
+  saveBtn: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
     backgroundColor: '#111827',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center'
   },
-  btnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 }
+  saveBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 }
 })

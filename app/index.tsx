@@ -1,7 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
-import ItemRow from '../components/ItemRow'
 import { Item, loadItems, saveItems } from '../storage/listStorage'
 
 export default function HomeScreen() {
@@ -13,19 +12,20 @@ export default function HomeScreen() {
     setItems(loaded)
   }, [])
 
-  // Carrega itens na primeira renderização
   useEffect(() => {
     refreshItems()
   }, [refreshItems])
 
-  // Recarrega itens sempre que a tela voltar a ficar ativa
   useFocusEffect(
     useCallback(() => {
       refreshItems()
     }, [refreshItems])
   )
 
-  const total = useMemo(() => items.reduce((acc, it) => acc + (Number(it.price) || 0), 0), [items])
+  const total = useMemo(
+    () => items.reduce((acc, it) => acc + (Number(it.price) || 0) * (it.quantity || 1), 0),
+    [items]
+  )
   const BRL = useMemo(
     () => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }),
     []
@@ -35,7 +35,7 @@ export default function HomeScreen() {
     async (id: string) => {
       const updated = items.filter((it) => it.id !== id)
       setItems(updated)
-      await saveItems(updated) // salva a lista atualizada no AsyncStorage
+      await saveItems(updated)
     },
     [items]
   )
@@ -48,8 +48,22 @@ export default function HomeScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ItemRow item={item} onDelete={handleDelete} />}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          renderItem={({ item }) => (
+            <View style={styles.row}>
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.details}>
+                  {item.quantity} x {BRL.format(Number(item.price) || 0)} ={' '}
+                  {BRL.format((Number(item.price) || 0) * (item.quantity || 1))}
+                </Text>
+              </View>
+
+              <Pressable style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+                <Text style={styles.deleteTxt}>🗑️</Text>
+              </Pressable>
+            </View>
+          )}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
         />
       )}
 
@@ -67,7 +81,30 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  empty: { textAlign: 'center', marginTop: 40, opacity: 0.6 },
+  empty: { textAlign: 'center', marginTop: 40, opacity: 0.6, fontSize: 16 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    minHeight: 60
+  },
+  info: { flex: 1 },
+  name: { fontSize: 16, fontWeight: '600' },
+  details: { fontSize: 14, color: '#555', marginTop: 4 },
+  deleteBtn: {
+    marginLeft: 12,
+    width: 36,
+    height: 36,
+    backgroundColor: '#e11d48',
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  deleteTxt: { color: '#fff', fontSize: 18 },
   footer: {
     position: 'absolute',
     left: 0,
