@@ -1,33 +1,42 @@
 import { PRODUCTS } from '@/data/products'
-import { Item, loadItems, saveItems } from '@/storage/listStorage'
-import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Product, ShoppingList, loadLists, saveLists } from '@/storage/listStorage'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
-type TempItem = {
-  id: string
-  name: string
-  quantity: number
-  price: string
-}
+type TempItem = Product & { priceStr: string }
 
 export default function AddItemScreen() {
   const router = useRouter()
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const [list, setList] = useState<ShoppingList | null>(null)
+  const [items, setItems] = useState<TempItem[]>([])
 
-  // transforma o objeto PRODUCTS em uma lista plana de itens
-  const initialItems: TempItem[] = Object.entries(PRODUCTS).flatMap(([category, names]) =>
-    names.map((name) => ({
-      id: `${category}-${name}`,
-      name,
-      quantity: 0,
-      price: ''
-    }))
-  )
+  useEffect(() => {
+    const loadList = async () => {
+      const lists = await loadLists()
+      const currentList = lists.find((l) => l.id === id)
+      if (!currentList) return
+      setList(currentList)
 
-  const [items, setItems] = useState<TempItem[]>(initialItems)
-
-  const itemMap = new Map(items.map((it) => [it.name, it]))
+      // transforma PRODUCTS em TempItems já com quantity e price existentes
+      const temp: TempItem[] = Object.entries(PRODUCTS).flatMap(([category, names]) =>
+        names.map((name) => {
+          const existing = currentList.products.find((p) => p.name === name)
+          return {
+            id: `${category}-${name}`,
+            name,
+            quantity: existing?.quantity || 0,
+            price: existing?.price || 0,
+            priceStr: existing?.price.toString() || ''
+          }
+        })
+      )
+      setItems(temp)
+    }
+    loadList()
+  }, [id])
 
   const updateQuantity = (id: string, value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '')
@@ -37,41 +46,33 @@ export default function AddItemScreen() {
   }
 
   const updatePrice = (id: string, value: string) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, price: value } : item)))
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, priceStr: value } : item)))
   }
 
   const onSave = async () => {
-    const validItems = items.filter((i) => i.quantity > 0 && Number(i.price.replace(',', '.')) > 0)
+    if (!list) return
+    const validItems = items.filter(
+      (i) => i.quantity > 0 && Number(i.priceStr.replace(',', '.')) > 0
+    )
 
     if (!validItems.length) {
       Alert.alert('Nenhum item válido', 'Informe quantidade e preço de pelo menos um item.')
       return
     }
 
-    const existingItems = await loadItems()
-    const mergedItems: Item[] = [...existingItems]
+    const updatedProducts: Product[] = validItems.map((i) => ({
+      id: i.id,
+      name: i.name,
+      quantity: i.quantity,
+      price: Number(i.priceStr.replace(',', '.'))
+    }))
 
-    validItems.forEach((newItem) => {
-      const index = mergedItems.findIndex((it) => it.name === newItem.name)
-      const priceNumber = Number(newItem.price.replace(',', '.'))
-
-      if (index !== -1) {
-        mergedItems[index] = {
-          ...mergedItems[index],
-          quantity: (mergedItems[index].quantity || 0) + newItem.quantity,
-          price: priceNumber
-        }
-      } else {
-        mergedItems.push({
-          id: Date.now().toString() + Math.random(),
-          name: newItem.name,
-          quantity: newItem.quantity,
-          price: priceNumber
-        })
-      }
-    })
-
-    await saveItems(mergedItems)
+    const allLists = await loadLists()
+    const index = allLists.findIndex((l) => l.id === list.id)
+    if (index !== -1) {
+      allLists[index] = { ...list, products: updatedProducts }
+      await saveLists(allLists)
+    }
     router.back()
   }
 
@@ -91,15 +92,12 @@ export default function AddItemScreen() {
         {Object.entries(PRODUCTS).map(([category, names]) => (
           <View key={category} style={{ marginBottom: 20 }}>
             <Text style={styles.category}>{category}</Text>
-
             {names.map((name) => {
-              const item = itemMap.get(name)
+              const item = items.find((it) => it.name === name)
               if (!item) return null
-
               return (
                 <View key={item.id} style={styles.row}>
                   <Text style={styles.name}>{item.name}</Text>
-
                   <TextInput
                     style={styles.qtyInput}
                     keyboardType="numeric"
@@ -107,17 +105,15 @@ export default function AddItemScreen() {
                     onChangeText={(text) => updateQuantity(item.id, text)}
                     placeholder="Qtd"
                   />
-
                   <TextInput
                     style={styles.input}
                     keyboardType="decimal-pad"
-                    value={item.price}
+                    value={item.priceStr}
                     onChangeText={(text) => updatePrice(item.id, text)}
                     placeholder="Preço"
                   />
-
                   <Text style={styles.total}>
-                    {BRL.format(item.quantity * (Number(item.price.replace(',', '.')) || 0))}
+                    {BRL.format(item.quantity * (Number(item.priceStr.replace(',', '.')) || 0))}
                   </Text>
                 </View>
               )
@@ -126,7 +122,7 @@ export default function AddItemScreen() {
         ))}
 
         <Pressable style={styles.saveBtn} onPress={onSave}>
-          <Text style={styles.saveBtnTxt}>Salvar Todos</Text>
+          <Text style={styles.saveBtnTxt}>Salvar Lista</Text>
         </Pressable>
       </KeyboardAwareScrollView>
     </View>

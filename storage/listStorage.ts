@@ -1,28 +1,35 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export type Item = {
+export type Product = {
   id: string
   name: string
-  price: number
   quantity: number
+  price: number
 }
 
-const KEY = '@shoplist/items'
+export type ShoppingList = {
+  id: string
+  name: string
+  createdAt: number
+  products: Product[]
+}
 
-export async function loadItems(): Promise<Item[]> {
+const KEY = '@shoplist/lists'
+
+export async function loadLists(): Promise<ShoppingList[]> {
   try {
     const raw = await AsyncStorage.getItem(KEY)
     return raw ? JSON.parse(raw) : []
   } catch (e) {
-    console.warn('Erro ao carregar itens:', e)
+    console.warn('Erro ao carregar listas:', e)
     return []
   }
 }
 
-export async function saveItems(items: Item[]): Promise<void> {
+export async function saveLists(lists: ShoppingList[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(items))
+    await AsyncStorage.setItem(KEY, JSON.stringify(lists))
   } catch (e) {
-    console.warn('Erro ao salvar itens:', e)
+    console.warn('Erro ao salvar listas:', e)
   }
 }

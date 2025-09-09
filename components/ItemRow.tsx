@@ -1,10 +1,9 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { Item } from '../storage/listStorage'
 
 type Props = {
-  item: Item
+  item: any
   onDelete: (id: string) => void
-  onUpdate: (updatedItem: Item) => void
+  onUpdate: (updatedItem: any) => void
 }
 
 export default function ItemRow({ item, onDelete, onUpdate }: Props) {

@@ -1,11 +1,10 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInUp, Layout } from 'react-native-reanimated'
-import { Item } from '../storage/listStorage'
 import { BRL } from '../utils/currency'
 
 type Props = {
-  item: Item
+  item: any
   onDelete: (id: string) => void
 }
 
