@@ -12,6 +12,7 @@
     "styles",
     "types",
     "storage",
-    "utils"
+    "utils",
+    "data"
   ]
 }

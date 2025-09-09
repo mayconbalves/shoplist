@@ -19,13 +19,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        {/* Tela principal da lista */}
-        <Stack.Screen name="index" options={{ title: 'ShopList' }} />
-
-        {/* Tela de adicionar item */}
-        <Stack.Screen name="AddItem" options={{ title: 'Adicionar Produto' }} />
-
-        {/* Tela fallback (já existente) */}
+        <Stack.Screen name="splash" options={{ headerShown: false }} />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="AddItem" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

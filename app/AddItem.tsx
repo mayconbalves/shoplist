@@ -1,9 +1,9 @@
+import { PRODUCTS } from '@/data/products'
+import { Item, loadItems, saveItems } from '@/storage/listStorage'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import { Item, loadItems, saveItems } from '../storage/listStorage'
-
-const PRODUCTS = ['Arroz', 'Feijão', 'Leite', 'Pão', 'Macarrão']
+import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 type TempItem = {
   id: string
@@ -14,21 +14,25 @@ type TempItem = {
 
 export default function AddItemScreen() {
   const router = useRouter()
-  const [items, setItems] = useState<TempItem[]>(
-    PRODUCTS.map((name) => ({ id: name, name, quantity: 0, price: '' }))
+
+  // transforma o objeto PRODUCTS em uma lista plana de itens
+  const initialItems: TempItem[] = Object.entries(PRODUCTS).flatMap(([category, names]) =>
+    names.map((name) => ({
+      id: `${category}-${name}`,
+      name,
+      quantity: 0,
+      price: ''
+    }))
   )
 
-  const incrementQuantity = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity: item.quantity + 1 } : item))
-    )
-  }
+  const [items, setItems] = useState<TempItem[]>(initialItems)
 
-  const decrementQuantity = (id: string) => {
+  const itemMap = new Map(items.map((it) => [it.name, it]))
+
+  const updateQuantity = (id: string, value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '')
     setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(0, item.quantity - 1) } : item
-      )
+      prev.map((item) => (item.id === id ? { ...item, quantity: Number(numericValue) } : item))
     )
   }
 
@@ -45,7 +49,6 @@ export default function AddItemScreen() {
     }
 
     const existingItems = await loadItems()
-
     const mergedItems: Item[] = [...existingItems]
 
     validItems.forEach((newItem) => {
@@ -53,7 +56,6 @@ export default function AddItemScreen() {
       const priceNumber = Number(newItem.price.replace(',', '.'))
 
       if (index !== -1) {
-        // Se já existe, somar quantidade e atualizar preço
         mergedItems[index] = {
           ...mergedItems[index],
           quantity: (mergedItems[index].quantity || 0) + newItem.quantity,
@@ -77,64 +79,92 @@ export default function AddItemScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-        {items.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <Text style={styles.name}>{item.name}</Text>
+      <KeyboardAwareScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        extraScrollHeight={Platform.OS === 'ios' ? 120 : 140}
+        enableOnAndroid={true}
+        enableAutomaticScroll
+        keyboardOpeningTime={0}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {Object.entries(PRODUCTS).map(([category, names]) => (
+          <View key={category} style={{ marginBottom: 20 }}>
+            <Text style={styles.category}>{category}</Text>
 
-            <Pressable style={styles.qtyBtn} onPress={() => decrementQuantity(item.id)}>
-              <Text style={styles.qtyBtnText}>-</Text>
-            </Pressable>
-            <Text style={styles.qtyText}>{item.quantity}</Text>
-            <Pressable style={styles.qtyBtn} onPress={() => incrementQuantity(item.id)}>
-              <Text style={styles.qtyBtnText}>+</Text>
-            </Pressable>
+            {names.map((name) => {
+              const item = itemMap.get(name)
+              if (!item) return null
 
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={item.price}
-              onChangeText={(text) => updatePrice(item.id, text)}
-              placeholder="Preço"
-            />
+              return (
+                <View key={item.id} style={styles.row}>
+                  <Text style={styles.name}>{item.name}</Text>
 
-            <Text style={styles.total}>
-              {BRL.format(item.quantity * (Number(item.price.replace(',', '.')) || 0))}
-            </Text>
+                  <TextInput
+                    style={styles.qtyInput}
+                    keyboardType="numeric"
+                    value={item.quantity.toString()}
+                    onChangeText={(text) => updateQuantity(item.id, text)}
+                    placeholder="Qtd"
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="decimal-pad"
+                    value={item.price}
+                    onChangeText={(text) => updatePrice(item.id, text)}
+                    placeholder="Preço"
+                  />
+
+                  <Text style={styles.total}>
+                    {BRL.format(item.quantity * (Number(item.price.replace(',', '.')) || 0))}
+                  </Text>
+                </View>
+              )
+            })}
           </View>
         ))}
-      </ScrollView>
 
-      <Pressable style={styles.saveBtn} onPress={onSave}>
-        <Text style={styles.saveBtnTxt}>Salvar Todos</Text>
-      </Pressable>
+        <Pressable style={styles.saveBtn} onPress={onSave}>
+          <Text style={styles.saveBtnTxt}>Salvar Todos</Text>
+        </Pressable>
+      </KeyboardAwareScrollView>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  category: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#1f2937',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+    paddingLeft: 6
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f9fafb',
     padding: 12,
     borderRadius: 10,
     minHeight: 60
   },
   name: { flex: 2, fontSize: 16, fontWeight: '600' },
-  qtyBtn: {
-    width: 36,
-    height: 36,
-    backgroundColor: '#111827',
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 4
+  qtyInput: {
+    width: 60,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginHorizontal: 4,
+    height: 40,
+    fontSize: 16,
+    backgroundColor: '#f3f4f6'
   },
-  qtyBtnText: { color: '#fff', fontWeight: '700', fontSize: 18 },
-  qtyText: { width: 32, textAlign: 'center', fontWeight: '600', fontSize: 16 },
   input: {
     flex: 1,
     borderWidth: 1,
@@ -143,18 +173,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     marginHorizontal: 4,
     height: 40,
-    fontSize: 16
+    fontSize: 16,
+    backgroundColor: '#f3f4f6'
   },
   total: { width: 90, textAlign: 'right', fontWeight: '600', fontSize: 16 },
   saveBtn: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
     backgroundColor: '#111827',
     paddingVertical: 14,
     borderRadius: 10,
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 12
   },
   saveBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 16 }
 })
