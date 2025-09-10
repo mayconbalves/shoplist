@@ -1,3 +1,4 @@
+import * as Print from 'expo-print'
 import { useFocusEffect, useRouter } from 'expo-router'
 import React, { useCallback, useEffect, useState } from 'react'
 import {
@@ -81,6 +82,33 @@ export default function HomeScreen() {
     await saveLists(updated)
   }
 
+  const exportPDF = async (list: ShoppingList) => {
+    if (!list.products || list.products.length === 0) {
+      Alert.alert('Lista vazia', 'Não há itens para exportar.')
+      return
+    }
+
+    const total = list.products.reduce((sum, p) => sum + (p.price || 0), 0)
+    const html = `
+      <html>
+        <body>
+          <h1>${list.name}</h1>
+          <ul>
+            ${list.products.map((p) => `<li>${p.name} — R$ ${p.price?.toFixed(2) || '0,00'}</li>`).join('')}
+          </ul>
+          <p><strong>Total: R$ ${total.toFixed(2)}</strong></p>
+        </body>
+      </html>
+    `
+
+    try {
+      await Print.printAsync({ html }) // abre o diálogo nativo de impressão/exportação
+    } catch (e) {
+      console.error('Erro ao gerar PDF', e)
+      Alert.alert('Erro', 'Não foi possível gerar o PDF.')
+    }
+  }
+
   return (
     <View style={styles.container}>
       {lists.length === 0 ? (
@@ -105,9 +133,7 @@ export default function HomeScreen() {
                       {new Date(item.createdAt).toLocaleDateString()}
                     </Text>
                   </View>
-
                   <Text style={styles.arrow}>{isExpanded ? '▲' : '▼'}</Text>
-
                   <Pressable style={styles.deleteBtn} onPress={() => deleteList(item.id)}>
                     <Text style={styles.deleteTxt}>🗑️</Text>
                   </Pressable>
@@ -128,15 +154,25 @@ export default function HomeScreen() {
                           </View>
                         ))}
 
-                        {/* Total + botão editar */}
+                        {/* Total + botão editar + exportar PDF */}
                         <View style={styles.totalRow}>
                           <Text style={styles.total}>Total: R$ {total.toFixed(2)}</Text>
-                          <Pressable
-                            style={styles.editBtn}
-                            onPress={() => router.push(`/AddItem?id=${item.id}`)}
-                          >
-                            <Text style={styles.editTxt}>✏️ Editar</Text>
-                          </Pressable>
+
+                          <View style={styles.buttonsContainer}>
+                            <Pressable
+                              style={styles.editBtn}
+                              onPress={() => router.push(`/AddItem?id=${item.id}`)}
+                            >
+                              <Text style={styles.editTxt}>✏️ Editar</Text>
+                            </Pressable>
+
+                            <Pressable
+                              style={[styles.editBtn, { marginLeft: 8 }]}
+                              onPress={() => exportPDF(item)}
+                            >
+                              <Text style={styles.editTxt}>📄 Exportar</Text>
+                            </Pressable>
+                          </View>
                         </View>
                       </>
                     )}
@@ -195,11 +231,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: 'hidden'
   },
-  accordionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12
-  },
+  accordionHeader: { flexDirection: 'row', alignItems: 'center', padding: 12 },
   listName: { fontSize: 16, fontWeight: '600' },
   listDate: { fontSize: 12, color: '#6b7280' },
   arrow: { marginLeft: 8, fontSize: 14 },
@@ -213,21 +245,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb'
   },
   noProducts: { fontStyle: 'italic', color: '#9ca3af' },
-  noteLine: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingVertical: 6
-  },
-  noteText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8
-  },
+  noteLine: { borderBottomWidth: 1, borderBottomColor: '#e5e7eb', paddingVertical: 6 },
+  noteText: { fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
   total: { fontWeight: '700', fontSize: 16 },
   editBtn: {
     paddingHorizontal: 10,
@@ -255,12 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  modalBox: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20
-  },
+  modalBox: { width: '85%', backgroundColor: '#fff', borderRadius: 10, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   modalInput: {
     borderWidth: 1,
@@ -268,6 +282,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 16
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end'
   },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16 },
   cancel: { color: '#ef4444', fontWeight: '600' },
