@@ -20,8 +20,8 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="index" />
-        <Stack.Screen name="AddItem" />
+        <Stack.Screen name="index" options={{ title: 'Minhas Listas' }} />
+        <Stack.Screen name="AddItem" options={{ title: 'Adicionar Itens' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
