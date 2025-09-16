@@ -22,10 +22,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/splash.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.mayconbalves.shoplist"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "25f303ce-0b37-4d47-80da-18dc0fb52606"
+      }
     }
   }
 }
